@@ -37,11 +37,11 @@ INTERVAL_FALLBACKS = {
 }
 CANADIAN_STOCKS = [
     "BTB-UN.TO", "CASH.TO", "CCO.TO", "CJ.TO", "CLS.TO",
-    "CSU.TO", "DFN.TO", "DOL.TO", "ENB.TO", "FFU.TO",
+    "CSU.TO", "DFN.TO", "DOL.TO", "ENB.TO", "FFU.NE",
     "FTN.TO", "GIL.TO", "HDIV.TO", "HHIS.TO",
     "KILO.TO", "KITS.TO", "KMP-UN.TO", "MSA.TO", "NA.TO", "NXE.TO",
-    "QSR.TO", "RGPM.TO", "RY.TO", "SIA.NE", "SHOP.TO",
-    "TECK-A.TO", "UCU.TO", "XEQT.TO", "YNVD.TO",
+    "QSR.TO", "RGPM.NE", "RY.TO", "SIA.NE", "SHOP.TO",
+    "TECK-A.TO", "UCU.NE", "XEQT.TO", "YNVD.NE",
     "ZQQ.TO", "ZSP.TO"
 ]
 

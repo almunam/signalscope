@@ -261,8 +261,8 @@ tr.row-highlight td:first-child{border-left:3px solid var(--accent)}
       <label>
         <div class="fl">Scan interval <div class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box" id="tip2">How often to scan. Every 30s is good. Very fast scanning may hit Yahoo Finance rate limits.</div></div></div>
         <select id="intervalSel">
-          <option value="15">Every 15 sec</option>
-          <option value="30" selected>Every 30 sec</option>
+          <option value="15" selected>Every 15 sec</option>
+          <option value="30">Every 30 sec</option>
           <option value="60">Every 1 min</option>
           <option value="120">Every 2 min</option>
           <option value="300">Every 5 min</option>
@@ -271,8 +271,8 @@ tr.row-highlight td:first-child{border-left:3px solid var(--accent)}
       <label>
         <div class="fl">Mode <div class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box" id="tip3">Swing = 6 months daily data, score ≥4. Day = 5 days 15min, score ≥3. Both = runs both, best score wins per symbol.</div></div></div>
         <select id="modeSel">
-          <option value="swing" selected>Swing (6mo daily)</option>
-          <option value="day">Day (5d 15min)</option>
+          <option value="swing">Swing (6mo daily)</option>
+          <option value="day" selected>Day (5d 15min)</option>
           <option value="both">Both</option>
         </select>
       </label>
@@ -284,9 +284,10 @@ tr.row-highlight td:first-child{border-left:3px solid var(--accent)}
         <div class="fl">Cooldown <div class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box" id="tip5">Once notified, won't notify the same stock again for this long. Prevents spam.</div></div></div>
         <select id="cooldownSel">
           <option value="5">5 min</option>
+          <option value="10" selected>10 min</option>
           <option value="15">15 min</option>
           <option value="30">30 min</option>
-          <option value="60" selected>1 hour</option>
+          <option value="60">1 hour</option>
           <option value="120">2 hours</option>
           <option value="240">4 hours</option>
         </select>
@@ -295,10 +296,10 @@ tr.row-highlight td:first-child{border-left:3px solid var(--accent)}
   </div>
 
   <!-- Layer thresholds -->
-  <div class="config-layers">
+  <div class="config-layers" style="grid-template-columns:repeat(5,1fr)">
     <label>
       <div class="fl">L2 · Min vol ratio <div class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box" id="tip6">Volume ratio = today's volume ÷ 20-day average. 1.2x means 20% more than usual. Lower to 1.0 for crypto.</div></div></div>
-      <input id="volThresh" type="number" value="1.2" min="0.5" max="5" step="0.1"/>
+      <input id="volThresh" type="number" value="1.5" min="0.5" max="5" step="0.1"/>
     </label>
     <label>
       <div class="fl">L2 · RSI buy max <div class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box" id="tip7">For buy signals: RSI must be BELOW this. 70 = not overbought yet. Lower to 60 for more conservative entries.</div></div></div>
@@ -619,7 +620,7 @@ function renderTable(rows){
     const resultHtml=e.notified?`<em class="badge pos">✓ Notified</em>`:e.failAt?`<em class="badge neg" title="Failed at Layer ${e.failAt}">L${e.failAt} failed</em>`:`<em class="badge grey">Skipped</em>`;
     tr.innerHTML=`
       <td style="font-family:var(--mono);font-size:.68rem;color:var(--muted);white-space:nowrap">${esc(e.time)}</td>
-      <td><span style="font-family:var(--mono);font-weight:700;color:var(--accent)">${esc(e.symbol)}</span>${nameHtml}</td>
+      <td><span style="font-family:var(--mono);font-weight:700;color:var(--accent)">${esc(e.symbol)}</span>${nameHtml}<span style="font-family:var(--mono);font-size:.55rem;color:var(--faint);background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 4px">${e.mode||"swing"}</span></td>
       <td><em class="badge ${t}">${fsig(e.signal)}</em></td>
       <td style="font-family:var(--mono);font-weight:700;color:${e.score>=4?"var(--green)":e.score<=-4?"var(--red)":"var(--text)"}">${e.score}</td>
       <td style="font-family:var(--mono);color:${e.rsi14<30?"var(--green)":e.rsi14>70?"var(--red)":"var(--text)"}">${e.rsi14!=null?Number(e.rsi14).toFixed(1):"--"}</td>
@@ -732,7 +733,7 @@ async function runScan(){
   for(const row of Object.values(bySymbol)){
     thisScan[row.symbol]={signal:row.signal,score:row.score};
     if(row.signal==="WATCH"&&Math.abs(row.score)<minScore) continue;
-    const entry={ts:tsNow(),time:nowStr(),symbol:row.symbol,name:row.name||"",signal:row.signal,score:row.score,rsi14:row.rsi14,volumeRatio:row.volumeRatio,price:row.price,changePercent:row.changePercent,confidence:row.confidence,trend:row.trend,stop:row.stop,target:row.target,currency:row.currency||"CAD",layers:[],notified:false,failAt:null};
+    const entry={ts:tsNow(),time:nowStr(),symbol:row.symbol,name:row.name||"",signal:row.signal,mode:row._mode||"swing",score:row.score,rsi14:row.rsi14,volumeRatio:row.volumeRatio,price:row.price,changePercent:row.changePercent,confidence:row.confidence,trend:row.trend,stop:row.stop,target:row.target,currency:row.currency||"CAD",layers:[],notified:false,failAt:null};
     if(row.signal==="LONG"||row.signal==="AVOID"){
       const v=await validateSignal(row,row._mode||"swing");
       entry.layers=v.layers;entry.failAt=v.failAt;
@@ -779,11 +780,11 @@ function stopMonitor(){
 function exportCSV(){
   const rows=getSortedFiltered();
   if(!rows.length){alert("No entries to export.");return;}
-  const hdrs=["Time","Symbol","Name","Signal","Score","RSI","Rel Vol","Price","Change%","Stop","Target","Notified","Fail At","Layers"];
+  const hdrs=["Time","Symbol","Name","Mode","Signal","Score","RSI","Rel Vol","Price","Change%","Stop","Target","Notified","Fail At","Layers"];
   const lines=[hdrs.join(",")];
   rows.forEach(r=>{
     const layers=(r.layers||[]).map(l=>`${l.n}:${l.ok?"PASS":"FAIL"}`).join("|");
-    lines.push([r.time,r.symbol,`"${(r.name||"").replace(/"/g,"'")}"`,r.signal,r.score,
+    lines.push([r.time,r.symbol,`"${(r.name||"").replace(/"/g,"'")}"`,r.mode||"swing",r.signal,r.score,
       r.rsi14!=null?Number(r.rsi14).toFixed(1):"",r.volumeRatio!=null?Number(r.volumeRatio).toFixed(2):"",
       r.price||"",r.changePercent!=null?Number(r.changePercent).toFixed(2):"",
       r.stop||"",r.target||"",r.notified?"YES":"NO",r.failAt||"",`"${layers}"`].join(","));

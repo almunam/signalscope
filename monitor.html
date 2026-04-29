@@ -312,6 +312,10 @@ tr.row-highlight td:first-child{border-left:3px solid var(--accent)}
       <div class="fl">L3 · Min TF agree <div class="tip-wrap"><span class="tip-icon">?</span><div class="tip-box" id="tip9">How many timeframes must agree with the signal. 2 = more signals, 3–4 = higher confidence only.</div></div></div>
       <input id="tfAgreeMin" type="number" value="2" min="1" max="7" step="1"/>
     </label>
+    <label>
+    <div class="fl">L2 · Min ATR%</div>
+    <input id="atrThresh" type="number" value="1.0" min="0" max="10" step="0.1"/>
+    </label>
   </div>
 
   <!-- Control buttons -->
@@ -499,10 +503,12 @@ async function validateSignal(row,mode){
   if(!l1)return{pass:false,layers,failAt:1};
 
   // L2 RSI + volume
+  const atrMin=parseFloat(document.getElementById("atrThresh").value)||1.0;
   const rsiOk=row.rsi14!==null&&(isBuy?(row.rsi14<=rsiMax&&row.rsi14>=20):(!isBuy&&(row.rsi14>=rsiMin&&row.rsi14<=80)));
   const volOk=row.volumeRatio!==null&&row.volumeRatio>=minVol;
-  const l2=rsiOk&&volOk;
-  layers.push({n:"L2 Confirm",ok:l2,tip:`RSI ${fmt2(row.rsi14)} ${rsiOk?"✓":"✗"} | Vol ${fmt2(row.volumeRatio)}x ${volOk?"✓":"✗"}`});
+  const atrOk=row.atrPercent!==null&&row.atrPercent>=atrMin;
+  const l2=rsiOk&&volOk&&atrOk;
+  layers.push({n:"L2 Confirm",ok:l2,tip:`RSI ${fmt2(row.rsi14)} ${rsiOk?"✓":"✗"} | Vol ${fmt2(row.volumeRatio)}x ${volOk?"✓":"✗"} | ATR ${fmt2(row.atrPercent)}% ${atrOk?"✓":"✗"}`});
   if(!l2)return{pass:false,layers,failAt:2};
 
   // L3 Timeframe agreement

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SignalScope · Canadian Stock Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f4f6f9;--bg2:#edf0f4;--surface:#fff;--surface2:#f9fafb;
+  --border:#e2e6eb;--border2:#cdd3da;
+  --text:#111827;--muted:#6b7280;--faint:#9ca3af;
+  --green:#059669;--green-bg:#ecfdf5;--green-bd:#a7f3d0;
+  --red:#dc2626;--red-bg:#fef2f2;--red-bd:#fecaca;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+  --blue:#1d6fa4;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --accent:#1d6fa4;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --sans:"Outfit",system-ui,sans-serif;
+  --mono:"JetBrains Mono","Consolas",monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1{font-size:1.55rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+h2{font-size:.95rem;font-weight:700;letter-spacing:-.01em}
+.mono{font-family:var(--mono)}
+.lbl{font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.shell{width:min(1440px,calc(100% - 28px));margin:0 auto;padding:12px 0 48px;display:grid;gap:9px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
+
+/* Topbar */
+.topbar{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;padding:11px 16px}
+.brand{display:flex;align-items:baseline;gap:8px}
+.brand-name{font-size:1.45rem;font-weight:800;letter-spacing:-.04em;color:var(--accent)}
+.brand-sub{font-family:var(--mono);font-size:.57rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);border:1px solid var(--border2);border-radius:3px;padding:2px 5px}
+.search-row{display:grid;grid-template-columns:1fr auto auto auto;gap:7px;align-items:end}
+.field-wrap{position:relative}
+.field-wrap .prompt{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--accent);font-family:var(--mono);font-size:.75rem;font-weight:600;pointer-events:none}
+
+/* Inputs */
+input,select,textarea{font:inherit;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:7px 10px;outline:none;transition:border-color 140ms,box-shadow 140ms;font-family:var(--mono);font-size:.79rem}
+input[type=search]{padding-left:22px;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,111,164,.11)}
+input[type=search]::-webkit-search-cancel-button{display:none}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;cursor:pointer}
+
+/* Buttons */
+button{font:inherit;font-family:var(--mono);font-size:.71rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border-radius:5px;padding:7px 13px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);transition:all 130ms;white-space:nowrap}
+button:hover{border-color:var(--accent);color:var(--accent);background:var(--blue-bg)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:wait}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-p:hover{background:#155d8a;border-color:#155d8a;color:#fff;box-shadow:0 4px 10px rgba(29,111,164,.28)}
+.btn-g{background:transparent;border-color:var(--border2);color:var(--muted)}
+
+.auto-lbl{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.63rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap}
+.auto-lbl input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;padding:0;border:none;background:none}
+
+/* Mode toggle */
+.mode-toggle{display:inline-flex;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:3px;gap:2px}
+.mode-toggle button{font-size:.63rem;padding:4px 12px;border:none;color:var(--muted);background:transparent;letter-spacing:.09em}
+.mode-toggle button:hover{background:var(--blue-bg);color:var(--accent);box-shadow:none}
+.mode-toggle button.is-active{background:var(--accent);color:#fff;border-radius:3px;box-shadow:var(--shadow-sm)}
+
+/* Screener controls — all 4 fields in one row */
+.sc-controls{display:grid;grid-template-columns:minmax(180px,1.4fr) 1fr 1fr auto;gap:9px;padding:11px 13px;border-bottom:1px solid var(--border);align-items:end}
+.fl{display:block;margin-bottom:4px;font-family:var(--mono);font-size:.59rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.sc-meta{display:flex;justify-content:space-between;align-items:center;padding:5px 13px;background:var(--surface2);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.63rem;color:var(--faint)}
+
+/* Table */
+.table-wrap{overflow-x:auto}
+table{width:100%;min-width:1020px;border-collapse:collapse}
+thead tr{background:var(--surface2);border-bottom:2px solid var(--border)}
+th{padding:7px 10px;text-align:left;font-family:var(--mono);font-size:.57rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);white-space:nowrap;border-right:1px solid var(--border);position:relative}
+th:last-child{border-right:none}
+th[data-tip]{cursor:help}
+th[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;font-size:.69rem;font-weight:400;letter-spacing:0;text-transform:none;padding:6px 9px;border-radius:5px;white-space:normal;width:190px;z-index:100;box-shadow:var(--shadow);line-height:1.45}
+th[data-tip]:hover::before{content:"";position:absolute;top:calc(100% + 1px);left:50%;transform:translateX(-50%);border:4px solid transparent;border-bottom-color:#1f2937;z-index:101}
+td{padding:8px 10px;font-size:.81rem;border-bottom:1px solid var(--border);border-right:1px solid rgba(226,230,235,.4);vertical-align:middle}
+td:last-child{border-right:none}
+tbody tr{transition:background 100ms;cursor:pointer}
+tbody tr:hover{background:var(--blue-bg)}
+td .sub{display:block;margin-top:1px;color:var(--faint);font-family:var(--mono);font-size:.62rem}
+.empty-st{padding:22px;text-align:center;color:var(--faint);font-family:var(--mono);font-size:.7rem}
+
+/* Symbol link */
+.sym-link{font-family:var(--mono);font-size:.8rem;font-weight:600;color:var(--accent);background:none;border:none;padding:0;letter-spacing:.03em;cursor:pointer}
+.sym-link:hover{color:#155d8a;background:none;box-shadow:none;text-decoration:underline}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:.61rem;font-weight:600;letter-spacing:.05em;font-style:normal;white-space:nowrap}
+.badge.pos{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+.badge.neg{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.badge.neu{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}
+
+/* Status bar */
+.sbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;font-family:var(--mono);font-size:.61rem;color:var(--faint)}
+
+/* Dashboard */
+.dash{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(330px,1fr);gap:9px;align-items:start}
+.ls,.rs{display:grid;gap:9px}
+
+/* Quote */
+.qbody{padding:14px}
+.qtop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.co-name{font-size:.98rem;font-weight:700;letter-spacing:-.01em;flex:1;min-width:0}
+.mkt-pill{font-family:var(--mono);font-size:.57rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.prow{display:flex;align-items:baseline;gap:11px;margin-bottom:2px}
+.pbig{font-size:clamp(1.9rem,3.5vw,3rem);font-weight:800;letter-spacing:-.04em;line-height:1;font-family:var(--mono)}
+.pchg{font-family:var(--mono);font-size:.9rem;font-weight:600}
+.rnote{font-family:var(--mono);font-size:.61rem;color:var(--faint);margin-bottom:11px}
+
+/* 52W bar */
+.w52{margin-bottom:13px}
+.w52-bg{height:5px;background:var(--bg2);border-radius:3px;position:relative;margin:4px 0}
+.w52-fill{height:100%;background:linear-gradient(90deg,var(--red) 0%,var(--amber) 50%,var(--green) 100%);border-radius:3px;position:absolute;left:0;top:0;width:100%}
+.w52-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.w52-lbls{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.59rem;color:var(--faint)}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mtile{padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:4px}
+.mtile .ml{font-family:var(--mono);font-size:.56rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+.mtile .mv{font-family:var(--mono);font-size:.83rem;font-weight:600;color:var(--text)}
+
+/* Chart */
+.cbody{padding:13px}
+.ctabs{display:flex;gap:3px;margin-bottom:9px;flex-wrap:wrap}
+.ctabs button{font-size:.61rem;padding:3px 9px;border-color:var(--border);min-height:0}
+.ctabs button.is-active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ctabs button:hover:not(.is-active){background:var(--blue-bg);color:var(--accent)}
+.cwrap{background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.cwrap svg{display:block;width:100%;height:286px}
+.cfooter{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-family:var(--mono);font-size:.59rem;color:var(--faint)}
+.legend{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:3px;font-size:.58rem;font-family:var(--mono);color:var(--muted)}
+.ld{width:10px;height:3px;border-radius:2px}
+
+/* Chart interpretation panel */
+.interp-panel{margin-top:10px;background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:6px;padding:11px 13px}
+.interp-title{font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.interp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.interp-item{background:var(--surface);border:1px solid var(--blue-bd);border-radius:5px;padding:7px 9px}
+.interp-item .ik{font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+.interp-item .iv{font-size:.74rem;color:var(--text);line-height:1.4}
+.interp-summary{margin-top:7px;padding:8px 10px;background:var(--surface);border:1px solid var(--blue-bd);border-radius:5px;font-size:.78rem;color:var(--text);line-height:1.5}
+.interp-summary strong{color:var(--accent)}
+
+/* Signal */
+.sig-card{border-top:3px solid var(--accent)}
+.sbody{padding:14px}
+.stop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px}
+.cpill{font-family:var(--mono);font-size:.6rem;font-weight:600;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted)}
+.stf{font-family:var(--mono);font-size:.57rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.srow{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.sbig{font-family:var(--mono);font-size:2.5rem;font-weight:600;letter-spacing:.02em;line-height:1}
+.smeta{flex:1}
+.stlbl{font-family:var(--mono);font-size:.63rem;color:var(--muted);margin-bottom:2px;letter-spacing:.04em}
+.ssum{font-size:.74rem;color:var(--muted);line-height:1.4}
+.reasons{margin-top:9px;display:grid;gap:3px;list-style:none}
+.reasons li{font-size:.74rem;color:var(--muted);padding:3px 7px 3px 14px;background:var(--surface2);border-left:2px solid var(--border2);border-radius:0 3px 3px 0;position:relative;line-height:1.35}
+.reasons li::before{content:"›";position:absolute;left:4px;color:var(--accent);font-weight:700}
+
+/* Timeframe grid — 3 cols, 9 tiles = 3 rows perfect */
+.tfgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.tftile{background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.tfhead{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;cursor:pointer;user-select:none;transition:background 110ms}
+.tfhead:hover{background:var(--blue-bg)}
+.tfname{font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.tfdetail{padding:0 8px;max-height:0;overflow:hidden;transition:max-height 230ms ease,padding 230ms ease}
+.tfdetail.open{max-height:120px;padding:0 8px 8px}
+.tftrend{font-family:var(--mono);font-size:.58rem;color:var(--faint);margin-bottom:3px}
+.tfact{font-size:.7rem;color:var(--muted);line-height:1.35}
+
+/* Indicator grid */
+.igrid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.itile{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:9px 11px}
+.ihead{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.iname{font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ival{font-family:var(--mono);font-size:.92rem;font-weight:600;color:var(--text);display:block;margin-bottom:3px}
+.imean{font-size:.7rem;color:var(--faint);line-height:1.35;margin-bottom:3px}
+.iexplain{font-size:.69rem;color:var(--accent);line-height:1.35;padding-top:3px;border-top:1px solid var(--border)}
+
+/* Subpanel */
+.sp{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
+.sphead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.spbody{padding:12px}
+.rbadge{font-family:var(--mono);font-size:.55rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);padding:2px 6px;border:1px solid var(--border);border-radius:3px}
+
+/* Responsive */
+@media(max-width:1100px){.dash{grid-template-columns:1fr}}
+@media(max-width:900px){.sc-controls{grid-template-columns:1fr 1fr;}.sc-controls>:last-child{grid-column:1/-1}}
+@media(max-width:780px){.topbar{grid-template-columns:1fr;gap:9px}.search-row{grid-template-columns:1fr auto}.sc-controls{grid-template-columns:1fr}.tfgrid{grid-template-columns:repeat(2,1fr)}.igrid{grid-template-columns:1fr}.interp-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.tfgrid{grid-template-columns:1fr}.mgrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<main class="shell">
+
+<!-- TOPBAR -->
+<div class="card topbar">
+  <div class="brand">
+    <span class="brand-name">SignalScope</span>
+    <span class="brand-sub">TSX · CA</span>
+  </div>
+  <form id="controls" class="search-row">
+    <label>
+      <div class="fl" style="margin-bottom:4px">Symbol</div>
+      <div class="field-wrap">
+        <span class="prompt">›</span>
+        <input id="symbolInput" type="search" value="RY.TO" maxlength="20" spellcheck="false" placeholder="RY.TO, SHOP.TO, AAPL…"/>
+      </div>
+    </label>
+    <div style="align-self:end"><button type="submit" class="btn-p">Fetch</button></div>
+    <div style="align-self:end"><button id="refreshButton" type="button" class="btn-g">↻ Refresh</button></div>
+    <div style="align-self:end"><label class="auto-lbl"><input id="autoRefreshInput" type="checkbox" checked/> Auto 15s</label></div>
+  </form>
+  <div style="font-family:var(--mono);font-size:.57rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);white-space:nowrap">Yahoo Finance · Free · Delayed</div>
+</div>
+
+<!-- SCREENER -->
+<div class="card">
+  <div class="card-head">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0"></div>
+      <div><div class="lbl" style="margin-bottom:1px">Screener</div><h2>Day &amp; Swing Signals</h2></div>
+    </div>
+    <div class="mode-toggle" role="group">
+      <button id="swingModeButton" type="button" class="is-active" data-mode="swing">Swing</button>
+      <button id="dayModeButton" type="button" data-mode="day">Day</button>
+    </div>
+  </div>
+  <!-- All 4 controls in one row -->
+  <div class="sc-controls">
+    <label>
+      <span class="fl">Watchlist · comma-separated</span>
+      <input id="watchlistInput" type="text" spellcheck="false" placeholder="RY.TO, TD.TO, SHOP.TO, ENB.TO… (blank = default TSX list)"/>
+    </label>
+    <label>
+      <span class="fl">Signal</span>
+      <select id="signalFilter">
+        <option value="all">All signals</option>
+        <option value="LONG">Strong Buy</option>
+        <option value="WATCH">Watch</option>
+        <option value="AVOID">Avoid</option>
+      </select>
+    </label>
+    <label>
+      <span class="fl">Min score</span>
+      <input id="minScoreInput" type="number" value="-10" min="-10" max="10" step="1"/>
+    </label>
+    <div style="align-self:end"><button id="screenButton" type="button" class="btn-p" style="width:100%">Run Screen</button></div>
+  </div>
+  <div class="sc-meta">
+    <span id="screenStatus">Ready · will scan default TSX watchlist</span>
+    <span>Rule-based screening · not financial advice</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-tip="Stock symbol. Click to open full chart and analysis below.">Symbol / Name</th>
+          <th data-tip="Strong Buy = 4+ indicators agree bullish. Watch = mixed signals. Avoid = 4+ indicators bearish.">Signal</th>
+          <th data-tip="Type of trade setup — e.g. momentum (big move with volume) or pullback (small dip in an uptrend).">Setup</th>
+          <th data-tip="Latest price in the stock's local currency (CAD for TSX stocks).">Price</th>
+          <th data-tip="Price change % vs yesterday's closing price. Green = up, red = down.">Change</th>
+          <th data-tip="Sum of indicator votes. +1 for each bullish signal, -1 for each bearish. Score ≥4 = Strong Buy, ≤-4 = Avoid.">Score</th>
+          <th data-tip="RSI (0–100): momentum meter. Under 30 = oversold / potential bounce. Over 70 = overbought / potential pullback. Sweet spot: 40–60.">RSI</th>
+          <th data-tip="Today's volume vs 20-day average. 2x = double the usual activity. High volume confirms price moves are real.">Rel Vol</th>
+          <th data-tip="Average daily price swing as % of current price. Higher = bigger daily moves = wider stops needed.">ATR%</th>
+          <th data-tip="Stop = price where you exit to limit your loss. Target = price where you take profit. Based on 1.5× and 2.5× ATR from current price.">Stop / Target</th>
+        </tr>
+      </thead>
+      <tbody id="screenerBody">
+        <tr><td colspan="10" class="empty-st">Run the screener to find Canadian setups</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- STATUS -->
+<div class="sbar">
+  <span style="color:var(--muted)">Click any screened symbol to open chart analysis below</span>
+  <span id="statusNote" class="mono">Ready</span>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash">
+  <div class="ls">
+
+    <!-- Quote -->
+    <div class="sp">
+      <div class="sphead">
+        <span class="lbl">Quote</span>
+        <span id="marketState" class="mkt-pill">Loading</span>
+      </div>
+      <div class="qbody">
+        <div class="qtop">
+          <div id="companyName" class="co-name">Waiting for symbol…</div>
+        </div>
+        <div class="prow">
+          <span id="priceValue" class="pbig">--</span>
+          <span id="changeValue" class="pchg neu">--</span>
+        </div>
+        <div id="rangeResolved" class="rnote">--</div>
+        <div class="w52" id="w52Wrap" style="display:none">
+          <div class="lbl" style="margin-bottom:4px">52-Week Range · where price sits right now</div>
+          <div class="w52-bg">
+            <div class="w52-fill"></div>
+            <div class="w52-dot" id="w52Dot"></div>
+          </div>
+          <div class="w52-lbls">
+            <span id="w52Lo">--</span>
+            <span id="w52Pct" style="color:var(--accent);font-weight:600">--%</span>
+            <span id="w52Hi">--</span>
+          </div>
+        </div>
+        <div id="metaStats" class="mgrid"></div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="sp">
+      <div class="sphead">
+        <span class="lbl">Price Chart</span>
+        <div class="legend">
+          <div class="li"><div class="ld" style="background:var(--accent)"></div>Price</div>
+          <div class="li"><div class="ld" style="background:#f97316"></div>SMA20</div>
+          <div class="li"><div class="ld" style="background:#8b5cf6"></div>SMA50</div>
+          <div class="li"><div class="ld" style="background:#94a3b8"></div>BB</div>
+          <div class="li"><div class="ld" style="background:#dc2626;opacity:.6"></div>R/Stop</div>
+          <div class="li"><div class="ld" style="background:#059669;opacity:.6"></div>S/Target</div>
+        </div>
+      </div>
+      <div class="cbody">
+        <div id="chartRangeTabs" class="ctabs">
+          <button type="button" data-range="1d"  data-interval="1m"  data-label="1 Hour">1H</button>
+          <button type="button" data-range="5d"  data-interval="1h"  data-label="3 Hours" class="is-active">3H</button>
+          <button type="button" data-range="1mo"  data-interval="1h"  data-label="1 Day">1D</button>
+          <button type="button" data-range="1mo" data-interval="1d"  data-label="3 Days">3D</button>
+          <button type="button" data-range="3mo" data-interval="1d"  data-label="1 Week">1W</button>
+          <button type="button" data-range="6mo" data-interval="1d"  data-label="1 Month">1M</button>
+          <button type="button" data-range="1y"  data-interval="1wk" data-label="3 Months">3M</button>
+          <button type="button" data-range="2y"  data-interval="1wk" data-label="6 Months">6M</button>
+          <button type="button" data-range="5y"  data-interval="1mo" data-label="12 Months">12M</button>
+        </div>
+        <div class="cwrap">
+          <svg id="chart" viewBox="0 0 920 286" preserveAspectRatio="none" aria-label="Price chart"></svg>
+        </div>
+        <div class="cfooter">
+          <div id="chartTimestamp" class="mono">--</div>
+          <div id="chartMeta" class="mono">--</div>
+        </div>
+        <!-- Chart interpretation panel -->
+        <div class="interp-panel" id="interpPanel" style="display:none">
+          <div class="interp-title">📊 How to read this chart · plain English</div>
+          <div class="interp-grid" id="interpGrid"></div>
+          <div class="interp-summary" id="interpSummary"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ls -->
+
+  <div class="rs">
+
+    <!-- Signal -->
+    <div class="sp sig-card">
+      <div class="sphead">
+        <span class="lbl">Signal Engine</span>
+        <span id="confidenceBadge" class="cpill">--%</span>
+      </div>
+      <div class="sbody">
+        <div id="signalTimeframe" class="stf">For selected chart timeframe</div>
+        <div class="srow">
+          <div id="signalValue" class="sbig neu">HOLD</div>
+          <div class="smeta">
+            <div id="trendValue" class="stlbl">TREND: --</div>
+            <p id="signalSummary" class="ssum">Fetching analysis…</p>
+          </div>
+        </div>
+        <ul id="reasonsList" class="reasons"></ul>
+      </div>
+    </div>
+
+    <!-- Timeframes — 9 tiles, 3 cols = perfect grid -->
+    <div class="sp">
+      <div class="sphead">
+        <span class="lbl">What To Do By Timeframe</span>
+        <span class="rbadge">Click tile to expand</span>
+      </div>
+      <div class="spbody">
+        <div id="timeframeGrid" class="tfgrid"></div>
+      </div>
+    </div>
+
+    <!-- Indicators -->
+    <div class="sp">
+      <div class="sphead">
+        <span class="lbl">Indicator Breakdown</span>
+        <span class="rbadge">Hover column headers for tips</span>
+      </div>
+      <div class="spbody">
+        <div id="indicatorGrid" class="igrid"></div>
+      </div>
+    </div>
+
+  </div><!-- /rs -->
+</div><!-- /dash -->
+</main>
+
+<script>
+// ── DOM refs ─────────────────────────────────────────────────
+const controls=document.getElementById("controls"),symbolInput=document.getElementById("symbolInput"),
+companyName=document.getElementById("companyName"),marketState=document.getElementById("marketState"),
+priceValue=document.getElementById("priceValue"),changeValue=document.getElementById("changeValue"),
+metaStats=document.getElementById("metaStats"),signalValue=document.getElementById("signalValue"),
+trendValue=document.getElementById("trendValue"),signalSummary=document.getElementById("signalSummary"),
+reasonsList=document.getElementById("reasonsList"),confidenceBadge=document.getElementById("confidenceBadge"),
+indicatorGrid=document.getElementById("indicatorGrid"),chartMeta=document.getElementById("chartMeta"),
+chartTimestamp=document.getElementById("chartTimestamp"),chart=document.getElementById("chart"),
+statusNote=document.getElementById("statusNote"),rangeResolved=document.getElementById("rangeResolved"),
+timeframeGrid=document.getElementById("timeframeGrid"),refreshButton=document.getElementById("refreshButton"),
+autoRefreshInput=document.getElementById("autoRefreshInput"),chartRangeTabs=document.getElementById("chartRangeTabs"),
+signalTimeframe=document.getElementById("signalTimeframe"),watchlistInput=document.getElementById("watchlistInput"),
+signalFilter=document.getElementById("signalFilter"),minScoreInput=document.getElementById("minScoreInput"),
+screenButton=document.getElementById("screenButton"),screenStatus=document.getElementById("screenStatus"),
+screenerBody=document.getElementById("screenerBody"),modeButtons=Array.from(document.querySelectorAll(".mode-toggle button")),
+w52Wrap=document.getElementById("w52Wrap"),w52Dot=document.getElementById("w52Dot"),
+w52Lo=document.getElementById("w52Lo"),w52Hi=document.getElementById("w52Hi"),w52Pct=document.getElementById("w52Pct"),
+interpPanel=document.getElementById("interpPanel"),interpGrid=document.getElementById("interpGrid"),
+interpSummary=document.getElementById("interpSummary");
+
+let selectedRange="5d",selectedInterval="1h",selectedLabel="3 Hours",autoRefreshTimer=null,screenerMode="swing",screenerRows=[];
+let lastPayload=null; // store last fetch result for re-interpretation on tab change
+
+// ── Helpers ───────────────────────────────────────────────────
+function fmt(v,o={}){if(v===null||v===undefined||Number.isNaN(v))return"--";return new Intl.NumberFormat("en-US",o).format(v)}
+function fmtCur(v,c="USD"){if(v===null||v===undefined||Number.isNaN(v))return"--";return new Intl.NumberFormat("en-US",{style:"currency",currency:c,maximumFractionDigits:v>=100?2:4}).format(v)}
+function fmtCpt(v){if(v===null||v===undefined||Number.isNaN(v))return"--";return new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:1}).format(v)}
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function setTone(el,t){el.classList.remove("pos","neg","neu");el.classList.add(t)}
+function tone(s){return s==="LONG"||s==="BUY"?"pos":s==="AVOID"||s==="SELL"?"neg":"neu"}
+function rlbl(r){return{"1d":"1 Hour","5d":"3 Hours / 1 Day","1mo":"3 Days","3mo":"1 Week","6mo":"1 Month","1y":"3 Months","2y":"6 Months","5y":"12 Months"}[r]||r}
+function fsig(s){return{LONG:"Strong Buy",WATCH:"Watch",AVOID:"Avoid",BUY:"Buy",SELL:"Sell",HOLD:"Hold"}[s]||s}
+
+// ── Chart math ────────────────────────────────────────────────
+function calcSMA(vals,p){return vals.map((_,i)=>{if(i<p-1)return null;return vals.slice(i-p+1,i+1).reduce((a,b)=>a+b,0)/p})}
+function calcBB(vals,p=20,m=2){
+  const sma=calcSMA(vals,p);
+  return vals.map((_,i)=>{
+    if(sma[i]===null)return{mid:null,upper:null,lower:null};
+    const sl=vals.slice(i-p+1,i+1),mn=sma[i];
+    const std=Math.sqrt(sl.reduce((s,v)=>s+(v-mn)**2,0)/p);
+    return{mid:mn,upper:mn+m*std,lower:mn-m*std};
+  });
+}
+
+// ── Chart interpretation ──────────────────────────────────────
+function buildInterpretation(data,label){
+  const pts=data.chart.points||[];
+  if(!pts.length){interpPanel.style.display="none";return}
+  const closes=pts.map(p=>p.close);
+  const highs=pts.map(p=>p.high||p.close),lows=pts.map(p=>p.low||p.close);
+  const n=closes.length;
+  const cur=closes[n-1],first=closes[0];
+  const pctChange=((cur-first)/first*100).toFixed(1);
+  const isUp=cur>=first;
+  const sma20=calcSMA(closes,20),sma50=calcSMA(closes,50);
+  const s20=sma20[n-1],s50=sma50[n-1];
+  const bb=calcBB(closes,20,2);
+  const lastBB=bb[n-1];
+  const a=data.analysis||{};
+  const rsi=a.indicators?.rsi14;
+  const macd=a.indicators?.macd;
+  const atr=a.indicators?.atr14;
+  const recHi=Math.max(...highs.slice(-20)),recLo=Math.min(...lows.slice(-20));
+  const candleCount=n;
+
+  // Build interpretation items
+  const items=[];
+
+  // Price trend
+  items.push({
+    k:"Price trend",
+    v: isUp
+      ? `📈 Up ${pctChange}% over this ${label} view. Overall direction is bullish — price is moving higher.`
+      : `📉 Down ${Math.abs(pctChange)}% over this ${label} view. Overall direction is bearish — price is falling.`
+  });
+
+  // SMA context
+  if(s20&&s50){
+    const aboveBoth=cur>s20&&cur>s50,belowBoth=cur<s20&&cur<s50;
+    if(aboveBoth&&s20>s50) items.push({k:"Moving averages",v:"✅ Price is above both orange (SMA20) and purple (SMA50) lines, and SMA20 is above SMA50. This is a strong uptrend — bulls are in control."});
+    else if(aboveBoth) items.push({k:"Moving averages",v:"🟡 Price is above both moving averages. Trend is positive but the lines haven't crossed yet — not fully confirmed."});
+    else if(belowBoth) items.push({k:"Moving averages",v:"🔴 Price is below both moving averages. Trend is bearish — sellers are in control. Avoid buying until price reclaims SMA20."});
+    else items.push({k:"Moving averages",v:"⚠️ Price is between the two moving averages. Trend is mixed — wait for a clearer direction before entering."});
+  } else if(s20){
+    items.push({k:"Moving averages",v:cur>s20?"✅ Price is above the orange SMA20 line — short-term trend is bullish.":"🔴 Price is below the orange SMA20 line — short-term trend is bearish."});
+  }
+
+  // Bollinger Bands
+  if(lastBB&&lastBB.upper&&lastBB.lower&&lastBB.mid){
+    const bbWidth=((lastBB.upper-lastBB.lower)/lastBB.mid*100).toFixed(1);
+    if(cur>lastBB.upper) items.push({k:"Bollinger Bands",v:`⚠️ Price is ABOVE the upper grey band. This means the stock is overextended — it may pull back soon. Be cautious buying here.`});
+    else if(cur<lastBB.lower) items.push({k:"Bollinger Bands",v:`💡 Price is BELOW the lower grey band. This means the stock is oversold — a bounce is possible. Watch for reversal candles.`});
+    else if(cur>lastBB.mid) items.push({k:"Bollinger Bands",v:`✅ Price is in the upper half of the bands (above middle line). Momentum is positive. BB width: ${bbWidth}%.`});
+    else items.push({k:"Bollinger Bands",v:`🟡 Price is in the lower half of the bands (below middle line). Momentum is weak. BB width: ${bbWidth}%.`});
+  }
+
+  // RSI
+  if(rsi!==null&&rsi!==undefined){
+    if(rsi<30) items.push({k:"RSI momentum",v:`🟢 RSI is ${rsi.toFixed(0)} — OVERSOLD. The stock has been beaten down. Often a buying opportunity if price starts to recover.`});
+    else if(rsi>70) items.push({k:"RSI momentum",v:`🔴 RSI is ${rsi.toFixed(0)} — OVERBOUGHT. The stock has rallied hard. Risk of a pullback — don't chase this move.`});
+    else if(rsi>55) items.push({k:"RSI momentum",v:`✅ RSI is ${rsi.toFixed(0)} — healthy bullish momentum. Not overbought yet — there's room to run.`});
+    else if(rsi<45) items.push({k:"RSI momentum",v:`⚠️ RSI is ${rsi.toFixed(0)} — weak momentum. Price lacks buying pressure. Wait for RSI to recover above 50.`});
+    else items.push({k:"RSI momentum",v:`🟡 RSI is ${rsi.toFixed(0)} — neutral zone. No strong buy or sell signal from momentum alone.`});
+  }
+
+  // Support / Resistance
+  items.push({
+    k:"Support & Resistance",
+    v:`The green dashed line (S) at ${fmtCur(recLo,"CAD")} is recent support — price bounced from here before. The red dashed line (R) at ${fmtCur(recHi,"CAD")} is recent resistance — price struggled to break above this. These are key levels to watch.`
+  });
+
+  // Stop / Target
+  if(atr){
+    const stop=(a.currentPrice-atr*1.5).toFixed(2),tgt=(a.currentPrice+atr*2.5).toFixed(2);
+    items.push({k:"Stop & Target lines",v:`Red dashed = Stop loss at ~$${stop}. If price drops here, exit to protect your money. Green dashed = Target at ~$${tgt}. This is where you take your profit.`});
+  }
+
+  // Overall plain-English summary
+  const sig=a.signal,score=a.score,trend=a.trend;
+  let overall="";
+  if(sig==="BUY"||sig==="HOLD"&&trend==="Bullish"){
+    overall=`<strong>Overall for ${label}:</strong> The chart looks bullish. Price is trending up, moving averages are stacked correctly, and momentum is healthy. This is a setup where a careful entry on a small dip could work. Make sure you have a stop loss set before entering.`;
+  } else if(sig==="SELL"||sig==="HOLD"&&trend==="Bearish"){
+    overall=`<strong>Overall for ${label}:</strong> The chart looks bearish. Price is trending down and below its moving averages. Avoid buying here — wait for the trend to reverse before considering an entry.`;
+  } else {
+    overall=`<strong>Overall for ${label}:</strong> The chart is mixed — some bullish and some bearish signals cancel each other out. Score is ${score||0}. Best approach: wait for a clearer signal. Watch whether price holds above SMA20 or breaks below it — that will tell you the next direction.`;
+  }
+  if(rsi<30) overall+=` RSI is oversold which adds a bullish lean — a bounce could come soon.`;
+  else if(rsi>70) overall+=` RSI is overbought so even if the trend is up, a short pullback is normal before the next leg higher.`;
+
+  // Render
+  interpGrid.innerHTML="";
+  items.forEach(item=>{
+    const d=document.createElement("div");d.className="interp-item";
+    d.innerHTML=`<div class="ik">${item.k}</div><div class="iv">${item.v}</div>`;
+    interpGrid.appendChild(d);
+  });
+  interpSummary.innerHTML=overall;
+  interpPanel.style.display="block";
+}
+
+// ── Chart render ──────────────────────────────────────────────
+function updateChart(data){
+  const pts=data.chart.points||[];
+  if(!pts.length){chart.innerHTML="";chartMeta.textContent="No data";interpPanel.style.display="none";return}
+  const closes=pts.map(p=>p.close),highs=pts.map(p=>p.high||p.close),lows=pts.map(p=>p.low||p.close);
+  const hasCandle=pts.some(p=>p.open!==null&&p.high!==null&&p.low!==null);
+  const bb=calcBB(closes,20,2);
+  const sma20=calcSMA(closes,20),sma50=calcSMA(closes,50);
+  const a=data.analysis||{};
+  const atr14=(a.indicators||{}).atr14;
+  const stopPx=atr14?a.currentPrice-atr14*1.5:null;
+  const targPx=atr14?a.currentPrice+atr14*2.5:null;
+  const recHi=Math.max(...highs.slice(-20)),recLo=Math.min(...lows.slice(-20));
+  const bbUp=bb.map(b=>b.upper).filter(Boolean),bbLo=bb.map(b=>b.lower).filter(Boolean);
+  const allV=[...closes,...highs,...lows,...bbUp,...bbLo].filter(Boolean);
+  let pMin=Math.min(...allV),pMax=Math.max(...allV);
+  if(stopPx)pMin=Math.min(pMin,stopPx);
+  if(targPx)pMax=Math.max(pMax,targPx);
+  const mg=(pMax-pMin)*.06;pMin-=mg;pMax+=mg;
+  const pR=pMax-pMin||1;
+  const W=920,H=286,pL=10,pR2=10,pT=14,pB=10,cW=W-pL-pR2,cH=H-pT-pB,n=pts.length;
+  const tx=i=>pL+(i/Math.max(n-1,1))*cW;
+  const ty=v=>pT+(1-(v-pMin)/pR)*cH;
+  function lp(arr){let d="",f=true;arr.forEach((v,i)=>{if(v===null)return;d+=`${f?"M":"L"} ${tx(i).toFixed(1)} ${ty(v).toFixed(1)} `;f=false});return d}
+  const isUp=closes[n-1]>=closes[0],mainCol=isUp?"#059669":"#dc2626";
+  let svg=`<defs>
+    <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${mainCol}" stop-opacity=".13"/>
+      <stop offset="100%" stop-color="${mainCol}" stop-opacity=".01"/>
+    </linearGradient>
+    <clipPath id="cc"><rect x="${pL}" y="${pT}" width="${cW}" height="${cH}"/></clipPath>
+  </defs><g clip-path="url(#cc)">`;
+
+  // BB
+  const bup=lp(bb.map(b=>b.upper));
+  if(bup){
+    const brev=[...bb].reverse().map((b,ri)=>{const i=n-1-ri;if(b.lower===null)return null;return`L ${tx(i).toFixed(1)} ${ty(b.lower).toFixed(1)}`}).filter(Boolean).join(" ");
+    svg+=`<path d="${bup} ${brev} Z" fill="#94a3b8" fill-opacity=".07"/>`;
+    svg+=`<path d="${lp(bb.map(b=>b.upper))}" fill="none" stroke="#94a3b8" stroke-width=".9" stroke-opacity=".4" stroke-dasharray="3,3"/>`;
+    svg+=`<path d="${lp(bb.map(b=>b.lower))}" fill="none" stroke="#94a3b8" stroke-width=".9" stroke-opacity=".4" stroke-dasharray="3,3"/>`;
+    svg+=`<path d="${lp(bb.map(b=>b.mid))}" fill="none" stroke="#94a3b8" stroke-width=".8" stroke-opacity=".25"/>`;
+  }
+
+  // Support / Resistance
+  const ry=ty(recHi),sy2=ty(recLo);
+  svg+=`<line x1="${pL}" y1="${ry.toFixed(1)}" x2="${W-pR2}" y2="${ry.toFixed(1)}" stroke="#dc2626" stroke-width="1" stroke-opacity=".28" stroke-dasharray="5,3"/>`;
+  svg+=`<line x1="${pL}" y1="${sy2.toFixed(1)}" x2="${W-pR2}" y2="${sy2.toFixed(1)}" stroke="#059669" stroke-width="1" stroke-opacity=".28" stroke-dasharray="5,3"/>`;
+  svg+=`<text x="${W-pR2-2}" y="${(ry-3).toFixed(1)}" text-anchor="end" font-size="8" fill="#dc2626" fill-opacity=".55" font-family="JetBrains Mono,monospace">R</text>`;
+  svg+=`<text x="${W-pR2-2}" y="${(sy2+8).toFixed(1)}" text-anchor="end" font-size="8" fill="#059669" fill-opacity=".55" font-family="JetBrains Mono,monospace">S</text>`;
+
+  // Stop / Target
+  if(stopPx&&stopPx>pMin+mg*.5){const sy3=ty(stopPx);svg+=`<line x1="${pL}" y1="${sy3.toFixed(1)}" x2="${W-pR2}" y2="${sy3.toFixed(1)}" stroke="#dc2626" stroke-width="1.2" stroke-opacity=".5" stroke-dasharray="4,4"/>`;svg+=`<text x="${pL+3}" y="${(sy3-3).toFixed(1)}" font-size="7.5" fill="#dc2626" fill-opacity=".7" font-family="JetBrains Mono,monospace">Stop</text>`;}
+  if(targPx&&targPx<pMax-mg*.5){const ty3=ty(targPx);svg+=`<line x1="${pL}" y1="${ty3.toFixed(1)}" x2="${W-pR2}" y2="${ty3.toFixed(1)}" stroke="#059669" stroke-width="1.2" stroke-opacity=".5" stroke-dasharray="4,4"/>`;svg+=`<text x="${pL+3}" y="${(ty3-3).toFixed(1)}" font-size="7.5" fill="#059669" fill-opacity=".7" font-family="JetBrains Mono,monospace">Target</text>`;}
+
+  // Candles or line
+  const cw2=Math.max(1.5,Math.min(9,cW/n*.72));
+  if(hasCandle&&n<=280){
+    pts.forEach((p,i)=>{
+      if(p.open===null||p.high===null||p.low===null)return;
+      const x=tx(i),yO=ty(p.open),yC=ty(p.close),yH=ty(p.high),yL=ty(p.low);
+      const up=p.close>=p.open,col=up?"#059669":"#dc2626";
+      const ct=Math.min(yO,yC),ch=Math.max(1,Math.abs(yO-yC));
+      svg+=`<line x1="${x.toFixed(1)}" y1="${yH.toFixed(1)}" x2="${x.toFixed(1)}" y2="${yL.toFixed(1)}" stroke="${col}" stroke-width="1" stroke-opacity=".6"/>`;
+      svg+=`<rect x="${(x-cw2/2).toFixed(1)}" y="${ct.toFixed(1)}" width="${cw2.toFixed(1)}" height="${ch.toFixed(1)}" fill="${col}" fill-opacity="${up?.8:.9}" rx=".5"/>`;
+    });
+  } else {
+    const llp=lp(closes);
+    svg+=`<path d="${llp} L ${tx(n-1).toFixed(1)} ${(H-pB).toFixed(1)} L ${tx(0).toFixed(1)} ${(H-pB).toFixed(1)} Z" fill="url(#ag)"/>`;
+    svg+=`<path d="${llp}" fill="none" stroke="${mainCol}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  // SMAs
+  const s20p=lp(sma20),s50p=lp(sma50);
+  if(s20p)svg+=`<path d="${s20p}" fill="none" stroke="#f97316" stroke-width="1.5" stroke-linecap="round"/>`;
+  if(s50p)svg+=`<path d="${s50p}" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round"/>`;
+
+  svg+=`</g>`;
+  chart.innerHTML=svg;
+  const latest=pts[n-1];
+  const st=new Date(pts[0].timestamp*1000),en=new Date(latest.timestamp*1000);
+  const ivl=data.chart.resolvedInterval||data.chart.dataGranularity;
+  chartMeta.textContent=`${data.chart.range} · ${ivl} · ${st.toLocaleDateString()}→${en.toLocaleDateString()}`;
+  chartTimestamp.textContent=`Fetched: ${new Date().toLocaleTimeString()}`;
+
+  buildInterpretation(data,selectedLabel);
+}
+
+// ── Quote ─────────────────────────────────────────────────────
+function updateQuote(data){
+  const q=data.quote||{},cd=data.chart||{},cur=q.currency||cd.currency||"USD";
+  const chg=q.regularMarketChangePercent??data.analysis.changePercentFromClose;
+  const t=chg>0?"pos":chg<0?"neg":"neu";
+  // Fix: prefer longName, then shortName — do NOT fall back to symbol (was showing ticker twice)
+  companyName.textContent=q.longName||q.shortName||"";
+  marketState.textContent=q.marketState||"Unknown";
+  priceValue.textContent=fmtCur(data.analysis.currentPrice,cur);
+  changeValue.textContent=chg===null||chg===undefined?"--":`${chg>=0?"+":""}${chg.toFixed(2)}%`;
+  setTone(changeValue,t);
+  rangeResolved.textContent=cd.intervalAdjusted?`Adjusted to ${cd.resolvedInterval} for ${cd.range}`:`${cd.range} · ${cd.resolvedInterval||cd.dataGranularity}`;
+  const lo=q.fiftyTwoWeekLow,hi=q.fiftyTwoWeekHigh,cp=data.analysis.currentPrice;
+  if(lo&&hi&&cp){
+    w52Wrap.style.display="block";
+    const pct=Math.max(0,Math.min(100,((cp-lo)/(hi-lo))*100));
+    w52Dot.style.left=`${pct}%`;
+    w52Lo.textContent=fmtCur(lo,cur);w52Hi.textContent=fmtCur(hi,cur);
+    w52Pct.textContent=`${pct.toFixed(0)}% of 52W range`;
+  } else w52Wrap.style.display="none";
+  metaStats.innerHTML="";
+  [["52W High",fmtCur(q.fiftyTwoWeekHigh,cur)],["52W Low",fmtCur(q.fiftyTwoWeekLow,cur)],["Currency",q.currency||"--"]].forEach(([l,v])=>{
+    const d=document.createElement("div");d.className="mtile";
+    d.innerHTML=`<div class="ml">${l}</div><div class="mv">${v}</div>`;
+    metaStats.appendChild(d);
+  });
+}
+
+// ── Indicator explanations ────────────────────────────────────
+const IND_EXPLAIN={
+  "SMA 20":"Orange line on chart. 20-period average price. If price is above it → short-term bullish. If price crosses below → warning sign.",
+  "SMA 50":"Purple line on chart. 50-period average price. Slower trend. Price above SMA50 = medium-term uptrend. SMA20 crossing above SMA50 = golden cross (bullish).",
+  "SMA 200":"Very long-term trend line. Price above SMA200 = the stock is in a long-term bull market. Institutions watch this level closely.",
+  "RSI 14":"Momentum meter (0–100). Under 30 = stock is oversold, may bounce. Over 70 = stock is overbought, may pull back. Best entries: RSI rising from below 30.",
+  "MACD":"Trend + momentum combo. When MACD line crosses above signal line → bullish. When it crosses below → bearish. Histogram shows the strength of that move.",
+  "Bollinger":"Grey band on chart. Upper band = overbought zone. Lower band = oversold zone. Price touching lower band with RSI < 30 = strong buy signal to watch.",
+  "ATR 14":"Measures how much the price moves per day on average. Not bullish/bearish — just tells you how wide your stop loss should be. Higher ATR = bigger stops needed."
+};
+
+// ── Analysis ──────────────────────────────────────────────────
+function updateAnalysis(data){
+  const a=data.analysis,t=a.signal==="BUY"?"pos":a.signal==="SELL"?"neg":"neu";
+  signalValue.textContent=fsig(a.signal);
+  signalTimeframe.textContent=`FOR ${selectedLabel.toUpperCase()} CHART`;
+  trendValue.textContent=`TREND: ${a.trend.toUpperCase()}`;
+  signalSummary.textContent=`Score ${a.score} · ${a.confidence}% confidence · MA, RSI, MACD, BB, ATR`;
+  confidenceBadge.textContent=`${a.confidence}%`;
+  setTone(signalValue,t);setTone(confidenceBadge,t);
+  reasonsList.innerHTML="";
+  a.reasons.forEach(r=>{const li=document.createElement("li");li.textContent=r;reasonsList.appendChild(li)});
+  indicatorGrid.innerHTML="";
+  (a.indicatorCards||[]).forEach(ind=>{
+    const t2=ind.signal==="BUY"?"pos":ind.signal==="SELL"?"neg":"neu";
+    const explain=IND_EXPLAIN[ind.name]||"";
+    const tile=document.createElement("div");tile.className="itile";
+    tile.innerHTML=`<div class="ihead"><span class="iname">${ind.name}</span><em class="badge ${t2}">${ind.signal}</em></div><strong class="ival">${ind.value===null||ind.value===undefined?"--":fmt(ind.value,{maximumFractionDigits:2})}</strong><p class="imean">${ind.meaning}</p>${explain?`<p class="iexplain">💡 ${explain}</p>`:""}`;
+    indicatorGrid.appendChild(tile);
+  });
+}
+
+// ── Timeframes ────────────────────────────────────────────────
+// 9 timeframes matching chart tabs exactly: 1H 3H 1D 3D 1W 1M 3M 6M 12M
+// Backend returns timeframes by label — we map those to our labels
+function updateTimeframes(data){
+  timeframeGrid.innerHTML="";
+  // Backend labels from build_timeframe_guidance: "1 Hour","1 Day","3 Days","1 Week","1 Month","6 Months","12 Months"
+  // We extend with 3H and 3M by interpolating from nearest available
+  const frames=data.timeframes||[];
+  const byLabel={};
+  frames.forEach(f=>byLabel[f.label]=f);
+
+  // Our desired 9 slots matching chart tabs
+  const slots=[
+    {label:"1 Hour",   key:"1 Hour"},
+    {label:"3 Hours",  key:"3 Hours",  fallback:"1 Hour"},
+    {label:"1 Day",    key:"1 Day"},
+    {label:"3 Days",   key:"3 Days"},
+    {label:"1 Week",   key:"1 Week"},
+    {label:"1 Month",  key:"1 Month"},
+    {label:"3 Months", key:"3 Months", fallback:"1 Month"},
+    {label:"6 Months", key:"6 Months"},
+    {label:"12 Months",key:"12 Months"},
+  ];
+
+  slots.forEach(slot=>{
+    let fr=byLabel[slot.key];
+    // For 3H and 3M use fallback with label override
+    if(!fr&&slot.fallback) fr=byLabel[slot.fallback]?{...byLabel[slot.fallback],label:slot.label,note:"(interpolated from "+slot.fallback+")"}:null;
+    const t=fr?(fr.signal==="BUY"?"pos":fr.signal==="SELL"?"neg":"neu"):"neu";
+    const sig=fr?fsig(fr.signal):"--";
+    const tile=document.createElement("div");tile.className="tftile";
+    const note=fr?.note?`<div style="font-size:.58rem;color:var(--faint);font-family:var(--mono);margin-bottom:2px">${fr.note}</div>`:"";
+    tile.innerHTML=`<div class="tfhead"><span class="tfname">${slot.label}</span><em class="badge ${t}">${sig}</em></div><div class="tfdetail">${note}<div class="tftrend">${fr?fr.trend+" · "+fr.confidence+"%":"--"}</div><p class="tfact">${fr?fr.action:"No data available."}</p></div>`;
+    tile.querySelector(".tfhead").addEventListener("click",()=>tile.querySelector(".tfdetail").classList.toggle("open"));
+    timeframeGrid.appendChild(tile);
+  });
+}
+
+// ── Loading / Error ───────────────────────────────────────────
+function showLoading(){companyName.textContent="Fetching…";signalSummary.textContent="Updating…";statusNote.textContent="Fetching market data…"}
+function showError(msg){companyName.textContent="Error";signalSummary.textContent=msg;priceValue.textContent="--";changeValue.textContent="--";rangeResolved.textContent="--";metaStats.innerHTML="";indicatorGrid.innerHTML="";timeframeGrid.innerHTML="";reasonsList.innerHTML="";chart.innerHTML="";chartMeta.textContent="--";chartTimestamp.textContent="--";statusNote.textContent=msg;w52Wrap.style.display="none";interpPanel.style.display="none"}
+
+// ── Screener ──────────────────────────────────────────────────
+function filteredRows(){
+  const s=signalFilter.value,m=Number(minScoreInput.value);
+  return screenerRows.filter(r=>(s==="all"||r.signal===s)&&(Number.isNaN(m)||r.score>=m));
+}
+
+function renderScreener(){
+  const rows=filteredRows();screenerBody.innerHTML="";
+  if(!rows.length){const tr=document.createElement("tr");tr.innerHTML='<td colspan="10" class="empty-st">No symbols match the current filters</td>';screenerBody.appendChild(tr);return}
+  rows.forEach(row=>{
+    const tr=document.createElement("tr");tr.dataset.symbol=row.symbol;
+    const t=tone(row.signal),ct=row.changePercent>0?"pos":row.changePercent<0?"neg":"neu";
+    const sym=esc(row.symbol);
+    // Fix: show real company name below ticker, not ticker twice
+    const name=esc(row.name&&row.name!==row.symbol?row.name:"");
+    const setup=esc(row.setup),tags=esc((row.tags||[]).join(", ")||"--");
+    tr.innerHTML=`
+      <td><button type="button" class="sym-link" data-symbol="${sym}">${sym}</button>${name?`<span class="sub">${name}</span>`:""}</td>
+      <td><em class="badge ${t}">${fsig(row.signal)}</em></td>
+      <td>${setup}<span class="sub">${tags}</span></td>
+      <td style="font-family:var(--mono)">${fmtCur(row.price,row.currency||"CAD")}</td>
+      <td class="${ct}" style="font-family:var(--mono)">${row.changePercent===null||row.changePercent===undefined?"--":`${row.changePercent>=0?"+":""}${row.changePercent.toFixed(2)}%`}</td>
+      <td style="font-family:var(--mono);font-weight:700;color:${row.score>=4?"var(--green)":row.score<=-4?"var(--red)":"var(--text)"}">${row.score}</td>
+      <td style="font-family:var(--mono);color:${row.rsi14<30?"var(--green)":row.rsi14>70?"var(--red)":"var(--text)"}">${row.rsi14===null||row.rsi14===undefined?"--":row.rsi14.toFixed(1)}</td>
+      <td style="font-family:var(--mono)">${row.volumeRatio===null||row.volumeRatio===undefined?"--":`${row.volumeRatio.toFixed(2)}x`}<span class="sub">${fmtCpt(row.volume)}</span></td>
+      <td style="font-family:var(--mono)">${row.atrPercent===null||row.atrPercent===undefined?"--":`${row.atrPercent.toFixed(2)}%`}</td>
+      <td style="font-family:var(--mono);font-size:.71rem"><span class="neg">↓ ${fmtCur(row.stop,row.currency||"CAD")}</span><br><span class="pos">↑ ${fmtCur(row.target,row.currency||"CAD")}</span></td>`;
+    screenerBody.appendChild(tr);
+  });
+}
+
+async function runScreener(){
+  screenButton.disabled=true;screenButton.textContent="Scanning…";
+  screenStatus.textContent=`Scanning ${screenerMode==="day"?"day-trade":"swing"} setups…`;
+  const p=new URLSearchParams({mode:screenerMode,symbols:watchlistInput.value.trim()});
+  const res=await fetch(`/api/screen?${p.toString()}`);
+  const payload=await res.json();
+  if(!payload.ok){screenStatus.textContent=payload.error||"Screener failed.";screenerRows=[];renderScreener();screenButton.disabled=false;screenButton.textContent="Run Screen";return}
+  screenerRows=payload.results||[];
+  renderScreener();
+  // Show failed symbols by name
+  let failedStr="";
+  if(payload.errors?.length){
+    const names=payload.errors.map(e=>e.symbol).join(", ");
+    failedStr=` · ${payload.errors.length} failed (${names})`;
+  }
+  screenStatus.textContent=`Scanned ${payload.symbolsScanned} · ${filteredRows().length} matches${failedStr}`;
+  screenButton.disabled=false;screenButton.textContent="Run Screen";
+}
+
+async function fetchStock(e){
+  if(e)e.preventDefault();
+  const sym=symbolInput.value.trim().toUpperCase()||"AAPL";
+  showLoading();
+  const res=await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}&range=${encodeURIComponent(selectedRange)}&interval=${encodeURIComponent(selectedInterval)}`);
+  const payload=await res.json();
+  if(!payload.ok){showError(payload.error||"Unknown error");return}
+  lastPayload=payload;
+  statusNote.textContent=payload.chart.intervalAdjusted?`Yahoo adjusted ${payload.chart.requestedInterval}→${payload.chart.resolvedInterval}`:`Loaded: ${payload.chart.symbol}`;
+  updateQuote(payload);updateAnalysis(payload);updateTimeframes(payload);updateChart(payload);
+}
+
+// ── Events ────────────────────────────────────────────────────
+controls.addEventListener("submit",e=>fetchStock(e).catch(err=>showError(err.message)));
+refreshButton.addEventListener("click",()=>fetchStock().catch(err=>showError(err.message)));
+
+chartRangeTabs.addEventListener("click",e=>{
+  const btn=e.target.closest("button[data-range]");if(!btn)return;
+  selectedRange=btn.dataset.range;selectedInterval=btn.dataset.interval;
+  selectedLabel=btn.dataset.label||btn.textContent.trim();
+  Array.from(chartRangeTabs.querySelectorAll("button")).forEach(b=>b.classList.toggle("is-active",b===btn));
+  fetchStock().catch(err=>showError(err.message));
+});
+
+modeButtons.forEach(btn=>btn.addEventListener("click",()=>{
+  screenerMode=btn.dataset.mode;modeButtons.forEach(b=>b.classList.toggle("is-active",b===btn));
+  runScreener().catch(err=>{screenStatus.textContent=err.message;screenButton.disabled=false;screenButton.textContent="Run Screen"});
+}));
+
+screenButton.addEventListener("click",()=>runScreener().catch(err=>{screenStatus.textContent=err.message;screenButton.disabled=false;screenButton.textContent="Run Screen"}));
+signalFilter.addEventListener("change",()=>{renderScreener();screenStatus.textContent=`Showing ${filteredRows().length} filtered results`});
+minScoreInput.addEventListener("input",()=>renderScreener());
+
+screenerBody.addEventListener("click",e=>{
+  const btn=e.target.closest(".sym-link");if(!btn)return;
+  symbolInput.value=btn.dataset.symbol;
+  fetchStock().catch(err=>showError(err.message));
+  window.scrollTo({top:document.querySelector(".sbar").offsetTop,behavior:"smooth"});
+});
+
+function syncAR(){if(autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null}if(autoRefreshInput.checked)autoRefreshTimer=setInterval(()=>fetchStock().catch(err=>showError(err.message)),15000)}
+autoRefreshInput.addEventListener("change",syncAR);
+syncAR();
+fetchStock().catch(err=>showError(err.message));
+runScreener().catch(err=>{screenStatus.textContent=err.message;screenButton.disabled=false;screenButton.textContent="Run Screen"});
+</script>
+</body>
+</html>
